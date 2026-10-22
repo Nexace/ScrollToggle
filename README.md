@@ -2,6 +2,12 @@
 
 A tiny native macOS menu-bar switch for the system Natural Scrolling setting.
 
+## Why use it?
+
+Moving from Windows to a Mac can make mouse and trackpad scrolling feel inconsistent. You may prefer the familiar mouse-wheel direction from Windows while keeping Natural Scrolling for trackpad gestures. macOS shares the Natural Scrolling setting between both devices, so changing it for one can make the other feel wrong.
+
+ScrollToggle puts that switch in the menu bar. When you move between a mouse and the trackpad, one click changes the direction without another trip through System Settings. It changes the shared setting; separate mouse and trackpad directions are not configured independently.
+
 ## Use
 
 Open **ScrollToggle.app**. The circle-and-arrows icon appears in the menu bar:
