@@ -66,5 +66,19 @@ int main(void) {
         for (int i=0;i<100;i++) assert(ChangeDirection() == nil);
         assert(Same(FakeStored, @YES) && FakeDirection == 1);
         printf("PASS: toggles, managed/missing API/invalid state, sync failure, rollback, absent value, concurrent change, 100 toggles.\n");
+        ScrollApp *app = [[ScrollApp alloc] init];
+        [app refresh:nil];
+        assert([app.hoverHelp isEqualToString:@"ScrollToggle\nNatural scrolling: On\nClick to turn off · Right-click for options"]);
+        FakeDirection = 0; FakeStored = @NO;
+        [app refresh:nil];
+        assert([app.hoverHelp containsString:@"Natural scrolling: Off\nClick to turn on"]);
+        FakeManaged = YES;
+        [app refresh:nil]; // Managed state can change without changing direction.
+        assert([app.hoverHelp containsString:@"Managed by your administrator"]);
+        assert(![app.hoverHelp containsString:@"Click to turn"]);
+        SetDirection = NULL;
+        [app refresh:nil];
+        assert([app.hoverHelp isEqualToString:@"ScrollToggle\nNatural scrolling: Unavailable\nRight-click for options"]);
+        printf("PASS: hover status and actions for on, off, managed, and unavailable states.\n");
     }
 }

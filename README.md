@@ -15,7 +15,7 @@ Open **ScrollToggle.app**. The circle-and-arrows icon appears in the menu bar:
 - **Left-click:** toggle Natural Scrolling immediately.
 - **Filled circle:** on. **Outline circle:** off.
 - **Right-click** (or Control-click): status, Launch at Login, Trackpad Settings, Quit.
-- **Hover:** a rounded “Scroll Toggle” label in the macOS system font appears after about half a second.
+- **Hover:** a rounded card shows **ScrollToggle**, **Natural scrolling: On/Off**, and **Click to turn off/on · Right-click for options** after about half a second. Managed or unavailable settings show an appropriate hint instead.
 - Launch at Login is initially off. Enable it in the menu if wanted. macOS may ask you to approve it under **System Settings → General → Login Items & Extensions**. A mixed checkmark means approval is pending; select the item to open those settings.
 
 The setting is shared by mouse and trackpad. This changes the real system preference rather than reversing individual scroll events. Quitting keeps your selected preference.
@@ -34,7 +34,7 @@ The hover description uses native Liquid Glass on macOS 26 and later, with a fro
 
 Opening a native menu on macOS 27 left approximately 6 MB of AppKit caches in the original single-process implementation. The finished app instead launches **the same executable briefly** to show its native menu, hover description, or error dialog. That UI process exits on dismissal; only the small status-item process remains. There is no separately installed helper.
 
-The **under 10 MB target is idle physical footprint**, in decimal MB. Opening the menu temporarily increases total memory while the UI process exists. RSS includes resident shared/framework pages and is larger; this is not an under-10-MB RSS claim. Measurements on other macOS versions can differ. The final glass-label build measured 11.093 MB in its latest sample; earlier builds measured below 10 MB. See `Verification.md` for results.
+The **under 10 MB target is idle physical footprint**, in decimal MB. Opening the menu or hover card temporarily increases total memory while the UI process exists. RSS includes resident shared/framework pages and is larger; this is not an under-10-MB RSS claim. Measurements on other macOS versions can differ. The version 1.3 live test measured 9.618 MB after toggles and menu cycles; the earlier version 1.2 shipping process measured 11.093 MB. See `Verification.md` for the measurement scope and results.
 
 ## Build
 

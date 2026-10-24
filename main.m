@@ -201,13 +201,20 @@ static NSImage *StatusIcon(NSInteger state) {
         self.item.button.appearsDisabled = state == -1;
         NSString *label = state == -1 ? @"Natural Scrolling: unavailable" :
                           enabled ? @"Natural Scrolling: on" : @"Natural Scrolling: off";
-        [self updateHoverHelp];
         [self.item.button setAccessibilityLabel:@"Toggle Natural Scrolling"];
         [self.item.button setAccessibilityValue:label];
     }
+    [self updateHoverHelp];
 }
 - (void)updateHoverHelp {
-    NSString *help = @"Scroll Toggle";
+    NSString *status = self.stateError ? @"Natural scrolling: Unavailable" :
+        self.displayedState == 1 ? @"Natural scrolling: On" : @"Natural scrolling: Off";
+    NSString *action = self.stateError ? @"Right-click for options" :
+        self.managed ? @"Managed by your administrator · Right-click for options" :
+        self.displayedState == 1 ? @"Click to turn off · Right-click for options" :
+                                   @"Click to turn on · Right-click for options";
+    NSString *help = [NSString stringWithFormat:@"ScrollToggle\n%@\n%@", status, action];
+    if (![help isEqualToString:self.hoverHelp]) [self hideHint];
     self.hoverHelp = help;
     self.item.button.toolTip = nil; // The label below does not depend on system tooltip forwarding.
     self.item.button.accessibilityHelp = help;
@@ -230,6 +237,7 @@ static NSImage *StatusIcon(NSInteger state) {
     (void)sender;
     self.hoverTimer = nil;
     if (self.menuTask.running || self.hintTask.running) return;
+    [self refresh:nil];
     NSPoint point = [NSEvent mouseLocation];
     NSTask *task = [[NSTask alloc] init];
     task.executableURL = [NSBundle mainBundle].executableURL;
@@ -241,14 +249,23 @@ static NSImage *StatusIcon(NSInteger state) {
 }
 - (void)presentHint {
     // A short-lived native panel keeps text/font/window caches out of the icon process.
-    NSTextField *label = [NSTextField labelWithString:self.hintText];
-    label.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
-    label.textColor = [NSColor labelColor];
-    label.lineBreakMode = NSLineBreakByClipping;
-    label.maximumNumberOfLines = 1;
-    NSSize textSize = label.cell.cellSize; // Includes the text field's own padding.
-    [label setFrameSize:NSMakeSize(ceil(textSize.width), ceil(textSize.height))];
-    NSSize size = NSMakeSize(ceil(label.frame.size.width)+24, ceil(label.frame.size.height)+14);
+    NSArray<NSString *> *lines = [self.hintText componentsSeparatedByString:@"\n"];
+    NSMutableArray<NSTextField *> *labels = [NSMutableArray array];
+    CGFloat width = 0, height = 24;
+    for (NSUInteger i = 0; i < lines.count; i++) {
+        NSTextField *label = [NSTextField labelWithString:lines[i]];
+        label.font = [NSFont systemFontOfSize:i == 2 ? 12 : 13
+            weight:i == 0 ? NSFontWeightBold : NSFontWeightRegular];
+        label.textColor = i == 2 ? [NSColor secondaryLabelColor] : [NSColor labelColor];
+        label.lineBreakMode = NSLineBreakByClipping;
+        label.maximumNumberOfLines = 1;
+        NSSize textSize = label.cell.cellSize;
+        [label setFrameSize:NSMakeSize(ceil(textSize.width), ceil(textSize.height))];
+        width = MAX(width, label.frame.size.width);
+        height += label.frame.size.height + (i ? 4 : 0);
+        [labels addObject:label];
+    }
+    NSSize size = NSMakeSize(width + 24, height);
     NSPanel *panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0,0,size.width,size.height)
         styleMask:NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel
         backing:NSBackingStoreBuffered defer:NO];
@@ -262,12 +279,17 @@ static NSImage *StatusIcon(NSInteger state) {
         NSWindowCollectionBehaviorFullScreenAuxiliary | NSWindowCollectionBehaviorIgnoresCycle;
     NSRect bounds = NSMakeRect(0,0,size.width,size.height);
     NSView *content = [[NSView alloc] initWithFrame:bounds];
-    [label setFrameOrigin:NSMakePoint(12,7)];
-    [content addSubview:label];
+    CGFloat y = size.height - 12;
+    for (NSTextField *label in labels) {
+        y -= label.frame.size.height;
+        [label setFrameOrigin:NSMakePoint(12,y)];
+        [content addSubview:label];
+        y -= 4;
+    }
     if (@available(macOS 26.0, *)) {
         NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:bounds];
         glass.style = NSGlassEffectViewStyleRegular;
-        glass.cornerRadius = size.height / 2;
+        glass.cornerRadius = 12;
         glass.contentView = content;
         panel.contentView = glass;
     } else {
@@ -277,7 +299,7 @@ static NSImage *StatusIcon(NSInteger state) {
         glass.blendingMode = NSVisualEffectBlendingModeBehindWindow;
         glass.state = NSVisualEffectStateActive;
         glass.wantsLayer = YES;
-        glass.layer.cornerRadius = size.height / 2;
+        glass.layer.cornerRadius = 12;
         glass.layer.masksToBounds = YES;
         [glass addSubview:content];
         panel.contentView = glass;
@@ -288,7 +310,7 @@ static NSImage *StatusIcon(NSInteger state) {
         if (NSPointInRect(point,candidate.frame)) { screen = candidate; break; }
     NSRect frame = screen.frame;
     CGFloat x = MAX(NSMinX(frame)+4, MIN(point.x-size.width/2,NSMaxX(frame)-size.width-4));
-    CGFloat y = MAX(NSMinY(frame)+4, point.y-size.height-16);
+    y = MAX(NSMinY(frame)+4, MIN(point.y-16, NSMaxY(screen.visibleFrame)-6)-size.height);
     [panel setFrameOrigin:NSMakePoint(x,y)];
     self.hintAnchor = point;
     self.hintPanel = panel;
